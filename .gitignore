@@ -1,0 +1,149 @@
+#!/usr/bin/env python
+# -*- coding: UTF-8 -*-
+
+import os, sys
+import json, re
+
+def MyChSpliter(paragraph):
+	split_dots = ['。', '！', '？']
+	sents = []
+	temp_sent = ''
+	temp_para = ' '+paragraph+' '
+	i = 1
+	quote_flag = False
+	end_flag = False
+	while i<=len(paragraph):
+		window = temp_para[i-1:i+2]
+		before = window[0]
+		mid = window[1]
+		after = window[2]
+		if mid=='“':
+			quote_flag = True
+		if mid=='”':
+			quote_flag = False
+			if before in split_dots:
+				if after not in ['，', '“']:
+					end_flag = True
+		if not quote_flag:
+			if mid in split_dots:
+				if after not in split_dots:
+					end_flag = True
+
+		temp_sent += mid
+		i += 1
+
+		if end_flag:
+			sents.append(temp_sent)
+			temp_sent = ''
+			end_flag = False
+	if temp_sent:
+		sents.append(temp_sent)
+
+	return sents
+
+def MyKoSpliter(paragraph):
+	split_dots = ['.']
+	sents = []
+	temp_sent = ''
+	for c in paragraph:
+		temp_sent += c
+		if c in split_dots:
+			sents.append(temp_sent)
+			temp_sent = ''
+	if temp_sent:
+		sents.append(temp_sent)
+	return sents
+
+def DirtyCleaner(paragraph):
+	p_re = re.compile(r'<p.*?>', re.S)
+	paragraph = re.sub(p_re, '_start_', paragraph)
+	_p_re = re.compile(r'</p>', re.S)
+	paragraph = re.sub(_p_re, '_end_', paragraph)
+	dirty_re = re.compile(r'<.*?>', re.S)
+	paragraph = re.sub(dirty_re, '', paragraph)
+	return paragraph
+
+def ExtractJson():
+	dir_path = 'data/json'
+	total_a, right_a = 0, 0
+	total_p, right_p = 0, 0
+	right_s = 0
+	ch_dir_path = 'result/20170602/ch'
+	try:
+		os.mkdir(ch_dir_path)
+	except Exception as e:
+		pass
+	ko_dir_path = 'result/20170602/ko'
+	try:
+		os.mkdir(ko_dir_path)
+	except Exception as e:
+		pass
+
+	paragraph_re = re.compile(r'_start_.*?_end_', re.S)
+	for file_name in os.listdir(dir_path):
+		fp = os.path.join(dir_path, file_name)
+		reader = open(fp, 'rb')
+		json_data = json.loads(reader.read().decode('UTF-8'))
+		reader.close()
+		ch_fp = os.path.join(ch_dir_path, file_name.split('.')[0])
+		ko_fp = os.path.join(ko_dir_path, file_name.split('.')[0])
+		ch_writer = open(ch_fp, 'wb')
+		ko_writer = open(ko_fp, 'wb')
+		for doc in json_data:
+			total_a += 1
+			url = doc['URL']
+			chinese = doc['Chinese']
+			korean = doc['Korean']
+			chinese_clean = DirtyCleaner(chinese)
+			chinese_split = re.findall(paragraph_re, chinese_clean)
+
+			korean_clean = DirtyCleaner(korean)
+			korean_split = re.findall(paragraph_re, korean_clean)
+
+			if len(chinese_split)==len(korean_split):
+				right_a += 1
+				chinese_korean = zip(chinese_split, korean_split)
+				for ch, ko in chinese_korean:
+					total_p += 1
+					ch_sents = MyChSpliter(ch.replace('\n', ''))
+					ko_sents = MyKoSpliter(ko.replace('\n', ''))
+					if len(ch_sents)==len(ko_sents):
+						right_p += 1
+						for ch_s, ko_s in zip(ch_sents, ko_sents):
+							if ch_s and ko_s:
+								if ch_s!='_end_':
+									right_s += 1
+								ch_writer.write((ch_s.replace('_start_', '_start_\n')+'\n').encode('UTF-8'))
+								ko_writer.write((ko_s.replace('_start_', '_start_\n')+'\n').encode('UTF-8'))
+		ch_writer.close()
+		ko_writer.close()
+	print('文章总数：{}   中韩段落数量相等文章总数：{}   占比：{}'.format(total_a, right_a, right_a/total_a))
+	print('段落总数：{}   中韩句子数量相等段落总数：{}   占比：{}'.format(total_p, right_p, right_p/total_p))
+	print('匹配句子总数：{}'.format(right_s))
+
+
+def MyPrinter(res):
+	for sent in res:
+		print(sent)
+
+def testCh():
+	s = '我说：“这是一个测试。测试分句用的！”那么，当“太冷了”的时候，该怎么办？“当然是加衣服了！”，我对自己说。'
+	res = MyChSpliter(s)
+	#MyPrinter(res)
+	s = '这是一个很严肃的测试。测试奇奇怪怪的东西。。那，你看！出问题了吧？'
+	res = MyChSpliter(s)
+	#MyPrinter(res)
+	return 0
+
+def testKo():
+	s = 'afdsljf. dad fdakdjf .fdsafj.'
+	res = MyKoSpliter(s)
+	MyPrinter(res)
+	return 0
+
+def main():
+	ExtractJson()
+	return 0
+
+if __name__ == '__main__':
+	testCh()
