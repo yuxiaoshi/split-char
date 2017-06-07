@@ -1,0 +1,54 @@
+#coding:utf8
+import sys
+import regex
+import re
+from collections import OrderedDict
+
+a=open(sys.argv[1])
+b=open('nerlist','w')
+
+nerList=[]
+
+for line in a.readlines():
+  line=line.decode('utf-8')
+  #print line
+
+  a=['/PERSON','/LOCATION','/FACILITY','/ORGANIZATION','/GPE']
+
+  for item in a:
+    start= line.find(item)
+    #print start
+    while start!=-1:
+      b4_end=line.rfind(' ',0,start)  # start pos
+      af_end=line.find(' ',start+1)   # end pos
+      src=line[b4_end+1:af_end]   #get the first item, check if next is the same item
+    
+      while line[line.find('/',af_end+1):line.find(' ',af_end+1)]==item:
+        #print 'next item'
+        af_end=line.find(' ',af_end+1)#next  pos
+        if af_end==-1:
+            src=line[b4_end+1:].strip('\r\n')
+            break
+        else:
+            src=line[b4_end+1:af_end]
+       # print b4_end+1,af_end  
+      print src
+      nerList.append(src)
+      start=line.find(item,af_end)
+
+print len(nerList)
+
+
+newList=[]
+for item in nerList:
+    if item not in newList:
+        newList.append(item)
+print len(newList)
+
+
+for item in newList:
+    if item=='':
+        pass
+    else:
+        b.write(item.encode('utf8')+'\n')
+b.close()
