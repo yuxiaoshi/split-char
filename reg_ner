@@ -1,0 +1,70 @@
+#coding=utf8
+import sys 
+
+def Load(nerlist):
+    fp = open(nerlist)
+    mdict={}
+    maxlen = 0
+    for l in fp:
+        if '骞? in l:
+            continue
+        words=l.strip().split()
+        vec = []
+        label=''
+        for w in words:
+            left,right=w.strip().rsplit('/',1)
+            vec.append(left)
+            label = right
+        if len(vec) > maxlen:
+            maxlen = len(vec)
+        mdict[' '.join(e for e in vec)]=label
+    
+    return mdict,maxlen
+    
+
+def Label(s,mdict,maxlen=5):
+    words = s.strip().split()
+#    words_vec=[]
+#    words_pos=[]
+#    for e in words:
+#        w,p = e.strip().rsplit('/',1)
+#        words_vec.append(w)
+#        words_pos.append(p)
+#    words=[]
+#    for e in words_vec:
+#        words.append(e)
+
+    length = len(words)
+    for span in xrange(min(length,maxlen),0,-1):
+        for start in xrange(length-span):
+ #           if span==1 and 'n' not in words_pos[start]:
+ #               continue
+
+            phrase = ' '.join(e for e in words[start:start+span])
+            print phrase
+            if phrase in mdict:
+                if len(phrase.decode('utf','ignore'))==1:
+                    continue
+                new_s = ' '.join(e for e in words[0:start])+' '+ \
+                        ' '.join(e+'/'+mdict[phrase] for e in words[start:start+span])+ ' '+ \
+                        ' '.join(e for e in words[start+span:])
+                words = new_s.strip().split()
+
+    return ' '.join(e for e in words)
+
+def ProcessFile(nerlist,srcfile):
+    #fp = open(nerlist)
+    fsrc = open(srcfile)
+    mdict,maxlen = Load(nerlist)
+
+    for idx,l in enumerate(fsrc):
+        res = Label(l,mdict,maxlen)
+        print res
+        if idx > 100:
+            return
+        if idx%10000 == 0:
+            print idx,'line '
+
+import sys
+ProcessFile(sys.argv[1],sys.argv[2])
+
