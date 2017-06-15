@@ -1,0 +1,229 @@
+#!/usr/bin/env python
+# -*- coding: UTF-8 -*-
+# '''
+# 利用韩文翻译的结果，做中韩语料相似度计算
+# 用到两种系数：one-hot向量的jaccard系数与构建句向量后的余弦相似度系数
+# 可以考虑jaccard系数作为主判断系数，余弦相似度系数作为辅助判断系数
+# '''
+
+import os, sys
+from gensim.models import word2vec
+import numpy as np
+
+SIZE = 500
+
+def Sim_Jaccard(ko_trans_sent, ch_sent):
+	ch_words = set(ch_sent)
+	ko_trans_words = set(ko_trans_sent)
+	jaccard_sim = len(ko_trans_words & ch_words) / len(ko_trans_words | ch_words)
+	return jaccard_sim
+
+def SentenceVec(words, word_vecs):
+	# mean pooling
+	vec = np.zeros(SIZE)
+	word_num = 0
+	for word in words:
+		if word not in [',', '，', '.', '。', '(', '（', ')', '）', '?', '？', '!', '！']:
+			try:
+				vec += word_vecs[word]
+				word_num += 1
+			except Exception as e:
+				pass
+	vec /= word_num
+	return vec
+
+def Sim_Cos(ko_trans_sent, ch_sent, word_vecs):
+	ko_trans_vec = SentenceVec(ko_trans_sent, word_vecs)
+	ch_vec = SentenceVec(ch_sent, word_vecs)
+	a = np.dot(ko_trans_vec, ch_vec)
+	b = np.linalg.norm(ko_trans_vec)*np.linalg.norm(ch_vec)
+	if b!=0:
+		cos_sim = 0.5+0.5*a/b
+	else:
+		cos_sim = 0
+	return cos_sim
+
+def GetMatcher(tr_paragraph, ch_paragraph, word_vecs, f = 'jaccard'):
+	matcher = []
+	for tr_idx, tr_sent in enumerate(tr_paragraph):
+		sim_max = 0
+		sim_idx = -1
+		for ch_idx, ch_sent in enumerate(ch_paragraph):
+			if f=='jaccard':
+				# 利用jaccard计算相似度
+				sim = Sim_Jaccard(tr_sent, ch_sent)
+			else:
+				# 利用 word2vec + mean pooling + cosine 计算相似度
+				sim = Sim_Cos(tr_sent, ch_sent, word_vecs)
+			if sim>sim_max:
+				sim_max = sim
+				sim_idx = ch_idx
+		matcher.append([tr_idx, sim_idx])
+	return matcher
+
+def JudgeMatcher(matcher):
+	same_flag = True
+	for idx in matcher:
+		if idx[0]!=idx[1]:
+			same_flag = False
+			break
+	return same_flag
+
+
+def Matcher(main_dir):
+	# 加载word2vec模型，使用jaccard方法计算相似度时可屏蔽掉
+	model_dir = 'src/word2vec/ch/{}/model'.format(SIZE)
+	model = word2vec.Word2Vec.load(model_dir)
+	word_vecs = model.wv
+	del model
+	# 定义中文、韩文、韩文译文路径
+	ko_trans_dir = 'result/{}/ko_translate'.format(main_dir)
+	ch_dir = 'result/{}/ch_cut'.format(main_dir)
+	ko_dir = 'result/{}/ko_token'.format(main_dir)
+	# 定义统计变量
+	not_co_match = 0
+	total_p = 0
+	total_s = 0
+	# 定义结果写入文件及变量
+	# 满足两种匹配条件
+	match_n = 0
+	match_wfp = 'result/{}/match'.format(main_dir)
+	match_writer = open(match_wfp, 'wb')
+	# 只满足wv
+	match_wv_n = 0
+	match_wv_wfp = 'result/{}/match_wv'.format(main_dir)
+	match_wv_writer = open(match_wv_wfp, 'wb')
+	# 只满足jc
+	match_jc_n = 0
+	match_jc_wfp = 'result/{}/match_jc'.format(main_dir)
+	match_jc_writer = open(match_jc_wfp, 'wb')
+	# 均不满足
+	not_match_n = 0
+	not_match_wfp = 'result/{}/not_match'.format(main_dir)
+	not_match_writer = open(not_match_wfp, 'wb')
+	match_extract_n = 0
+	match_extract_wfp = 'result/{}/match_extract'.format(main_dir)
+	match_extract_writer = open(match_extract_wfp, 'wb')
+	dislocation_n = 0
+	for file_name in os.listdir(ch_dir):
+		print(file_name)
+		ch_fp = os.path.join(ch_dir, file_name)
+		ko_trans_fp = os.path.join(ko_trans_dir, file_name+'.translate')
+		ko_fp = os.path.join(ko_dir, file_name+'.tok')
+		tr_reader = open(ko_trans_fp, 'rb')
+		ch_reader = open(ch_fp, 'rb')
+		ko_reader = open(ko_fp, 'rb')
+
+		wrong_flag = False
+		ch_paragraph = []
+		tr_paragraph = []
+		p_num = 0
+		for idx, (tr_line, ch_line, ko_line) in enumerate(zip(tr_reader, ch_reader, ko_reader)):
+			tr_infos = tr_line.decode('UTF-8').rstrip()
+			ch_infos = ch_line.decode('UTF-8').rstrip()
+			ko_infos = ko_line.decode('UTF-8').rstrip()
+			if ch_infos=='_start_':
+				if tr_infos=='《 哥哥 来 了 》':
+					p_num += 1
+					ch_paragraph = []
+					tr_paragraph = []
+					ko_paragraph = []
+				else:
+					print('Someting wrong! Check your file in line NO.{}'.format(idx+1))
+					wrong_flag = True
+			elif ch_infos=='_end_':
+				if tr_infos=='一 大 堆':
+					# compute all ko&ch sentences' similarity
+					matcher_jc = GetMatcher(tr_paragraph, ch_paragraph, word_vecs, f='jaccard')
+					is_match_jc = JudgeMatcher(matcher_jc)
+					matcher_wv = GetMatcher(tr_paragraph, ch_paragraph, word_vecs, f='cosine')
+					is_match_wv = JudgeMatcher(matcher_wv)
+					total_p += 1
+					total_s += len(matcher_jc)
+					# 满足两种匹配条件
+					if is_match_jc and is_match_wv:
+						# match_writer.write('_start_\n'.encode('UTF-8'))
+						for ch_sent, ko_sent in zip(ch_paragraph, ko_paragraph):
+							match_n += 1
+							match_writer.write('ko_{}: {}\n'.format(match_n, ko_sent).encode('UTF-8'))
+							match_writer.write('ch_{}: {}\n'.format(match_n, ' '.join(ch_sent)).encode('UTF-8'))
+						# match_writer.write('_end_\n'.encode('UTF-8'))
+					# 只满足jc
+					elif is_match_jc and (not is_match_wv):
+						# match_jc_writer.write('_start_\n'.encode('UTF-8'))
+						for ch_sent, ko_sent in zip(ch_paragraph, ko_paragraph):
+							match_jc_n += 1
+							match_jc_writer.write('ko_{}: {}\n'.format(match_jc_n, ko_sent).encode('UTF-8'))
+							match_jc_writer.write('ch_{}: {}\n'.format(match_jc_n, ' '.join(ch_sent)).encode('UTF-8'))
+						# match_jc_writer.write('_end_\n'.encode('UTF-8'))
+					# 只满足wv
+					elif is_match_wv and (not is_match_jc):
+						# match_wv_writer.write('_start_\n'.encode('UTF-8'))
+						for ch_sent, ko_sent in zip(ch_paragraph, ko_paragraph):
+							match_wv_n += 1
+							match_wv_writer.write('ko_{}: {}\n'.format(match_wv_n, ko_sent).encode('UTF-8'))
+							match_wv_writer.write('ch_{}: {}\n'.format(match_wv_n, ' '.join(ch_sent)).encode('UTF-8'))
+						# match_wv_writer.write('_end_\n'.encode('UTF-8'))
+					# 均不满足
+					else:
+						# 把不满足的均写入一个文件
+						not_match_n += len(matcher_jc)
+						not_co_match += 1
+						print('not match end line number: {}'.format(idx+1))
+						not_match_writer.write('_start_\n'.encode('UTF-8'))
+						not_match_writer.write('translate_paragraph:\n'.encode('UTF-8'))
+						for tr_sent in tr_paragraph:
+							not_match_writer.write('{}\n'.format(' '.join(tr_sent)).encode('UTF-8'))
+						not_match_writer.write('chinese_paragraph:\n'.encode('UTF-8'))
+						for ch_sent in ch_paragraph:
+							not_match_writer.write('{}\n'.format(' '.join(ch_sent)).encode('UTF-8'))
+						not_match_writer.write('jc result:{} \n'.format(str(matcher_jc)).encode('UTF-8'))
+						not_match_writer.write('wv result:{} \n'.format(str(matcher_wv)).encode('UTF-8'))
+						not_match_writer.write('_end_\n'.encode('UTF-8'))
+						# 提取不满足匹配中的可匹配句子
+						for s_n, (ch_sent, ko_sent) in enumerate(zip(ch_paragraph, ko_paragraph)):
+							if matcher_jc[s_n][0]==matcher_jc[s_n][1] and matcher_wv[s_n][0]==matcher_wv[s_n][1]:
+								match_extract_n += 1
+								match_extract_writer.write('ko_{}: {}\n'.format(match_extract_n, ko_sent).encode('UTF-8'))
+								match_extract_writer.write('ch_{}: {}\n'.format(match_extract_n, ' '.join(ch_sent)).encode('UTF-8'))
+						# 统计错位段落数量
+						if matcher_jc==matcher_wv:
+							if sorted([i[1] for i in matcher_jc])==[i[0] for i in matcher_jc]:
+								dislocation_n += 1
+
+					print('Paragraph NO.{}, match result: {}, {}'.format(p_num, is_match_jc, is_match_wv))
+					# if p_num>3:
+					# 	break
+				else:
+					print('Someting wrong! Check your file in line NO.{}'.format(idx+1))
+					wrong_flag = True
+			else:
+				ch_paragraph.append(ch_infos.split('  '))
+				tr_paragraph.append(tr_infos.split(' '))
+				ko_paragraph.append(ko_infos)
+			if wrong_flag:
+				break
+		tr_reader.close()
+		ch_reader.close()
+	not_match_writer.close()
+	match_writer.close()
+	match_jc_writer.close()
+	match_wv_writer.close()
+	match_extract_writer.close()
+	print('段落总数：{}\n不匹配总数：{}\n不匹配占比：{}'.format(total_p, not_co_match, not_co_match/total_p))
+	print('总句子数： {}'.format(total_s))
+	print('两者均匹配句子数： {}'.format(match_n))
+	print('仅匹配jaccard句子数： {}'.format(match_jc_n))
+	print('仅匹配word2vec句子数： {}'.format(match_wv_n))
+	print('均不匹配句子数： {}'.format(not_match_n))
+	print('不匹配中提取句子数： {}'.format(match_extract_n))
+	print('错位相匹配段落数量： {}'.format(dislocation_n))
+	return 0
+
+def main():
+	main_dir = '20170612'
+	Matcher(main_dir)
+	return 0
+
+if __name__ == '__main__':
+	main()
