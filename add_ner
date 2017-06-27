@@ -52,3 +52,45 @@ for item in newList:
     else:
         b.write(item.encode('utf8')+'\n')
 b.close()
+
+
+
+
+
+---------------------分割线----------------------
+import theano
+import theano.tensor as tensor
+from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
+
+import cPickle as pkl
+import json
+import numpy
+import copy
+import argparse
+
+import os
+import warnings
+import sys
+import time
+
+import itertools
+
+from subprocess import Popen
+
+from collections import OrderedDict
+
+profile = False
+
+from data_iterator import TextIterator
+from training_progress import TrainingProgress
+from util import *
+from theano_util import *
+from alignment_util import *
+
+from layers import *
+from initializers import *
+from optimizers import *
+from metrics.scorer_provider import ScorerProvider
+
+from domain_interpolation_data_iterator import DomainInterpolatorTextIterator
+----------------------------------------------
