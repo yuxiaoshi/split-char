@@ -143,9 +143,9 @@ def get_pair_statistics(vocab):
 
 def replace_pair(pair, vocab, indices):
     """Replace all occurrences of a symbol pair ('A', 'B') with a new symbol 'AB'"""
-    first, second = pair
-    pair_str = ''.join(pair)
-    pair_str = pair_str.replace('\\','\\\\')
+    first, second = pair   #pair为相邻频率出现的最高的词（格式为元祖）
+    pair_str = ''.join(pair)   #连接成为单词
+    pair_str = pair_str.replace('\\','\\\\') 
     changes = []
     pattern = re.compile(r'(?<!\S)' + re.escape(first + ' ' + second) + r'(?!\S)')
     if sys.version_info < (3, 0):
@@ -188,17 +188,17 @@ def main(infile, outfile, num_symbols, min_frequency=2, verbose=False, is_dict=F
     # version numbering allows bckward compatibility
     outfile.write('#version: 0.2\n')
 
-    vocab = get_vocabulary(infile, is_dict)
-    vocab = dict([(tuple(x[:-1])+(x[-1]+'</w>',) ,y) for (x,y) in vocab.items()])
-    sorted_vocab = sorted(vocab.items(), key=lambda x: x[1], reverse=True)
+    vocab = get_vocabulary(infile, is_dict)   #读取语料数据，并且对出现的词频进行统计
+    vocab = dict([(tuple(x[:-1])+(x[-1]+'</w>',) ,y) for (x,y) in vocab.items()])  #对语料中的词语进行分割
+    sorted_vocab = sorted(vocab.items(), key=lambda x: x[1], reverse=True)  #按照词频进行排序
 
-    stats, indices = get_pair_statistics(sorted_vocab)
+    stats, indices = get_pair_statistics(sorted_vocab)  # 对相邻的字符（词语）出现的频率进行统计
     big_stats = copy.deepcopy(stats)
     # threshold is inspired by Zipfian assumption, but should only affect speed
     threshold = max(stats.values()) / 10
     for i in range(num_symbols):
         if stats:
-            most_frequent = max(stats, key=lambda x: (stats[x], x))
+            most_frequent = max(stats, key=lambda x: (stats[x], x))  #找出频率最高的组合（单词）
 
         # we probably missed the best pair because of pruning; go back to full statistics
         if not stats or (i and stats[most_frequent] < threshold):
