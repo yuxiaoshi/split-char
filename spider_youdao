@@ -1,0 +1,79 @@
+#!/usr/bin/env python
+# -*- coding: UTF-8 -*-
+
+import os, sys
+from urllib import request, parse
+import time, random
+import json
+
+Headers = {
+	'Host': 'dict.youdao.com',
+	'Proxy-Connection': 'keep-alive',
+	'Cache-Control': 'max-age=0',
+	'Upgrade-Insecure-Requests': '1',
+	'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36',
+	'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+	'Accept-Language': 'zh-CN,zh;q=0.8,en;q=0.6'
+}
+
+def GetHTML(url):
+	proxy = request.ProxyHandler({'http':'109.105.1.52:8080'})
+	opener = request.build_opener(proxy)
+	request.install_opener(opener)
+	req = request.Request(url, headers = Headers)
+	page = request.urlopen(req, timeout = 5)
+	html = page.read()
+	return html
+
+def GetWords(fp):
+	reader = open(fp, 'rb')
+	words = []
+	for line in reader:
+		word = line.decode('UTF-8').strip().split('\t')[0]
+		words.append(word)
+	reader.close()
+	words = words[::-1]
+	return words
+
+def Spider():
+	dir_path = 'src/translates_en'
+	try:
+		os.mkdir(dir_path)
+	except Exception as e:
+		pass
+	# exist_words = set([])
+	# for file_name in os.listdir('src/translates'):
+	# 	exist_words.add(file_name)
+	# for file_name in os.listdir('src/translates_nv'):
+	# 	exist_words.add(file_name)
+	fp = '../src/EnglishWords'
+	words = GetWords(fp)
+	idx = 0
+	while len(words)!=0:
+		word = words.pop()
+		# # 如果抓取过了，则直接跳过
+		# if word in exist_words:
+		# 	continue
+		idx += 1
+		url_word = parse.quote(word)
+		url = 'http://dict.youdao.com/example/blng/eng/{}/#keyfrom=dict.main.moreblng'.format(url_word)
+		print('{}\t{}\t'.format(idx, word), end = ' ')
+		try:
+			html = GetHTML(url)
+			wfp = os.path.join(dir_path, word)
+			writer = open(wfp, 'wb')
+			writer.write(html)
+			writer.close()
+			print('Success!')
+			time.sleep(1*random.random()+1)
+		except Exception as e:
+			print('Failed! {}'.format(str(e)))
+			words.insert(0, word)
+	return 0
+
+def main():
+	Spider()
+	return 0
+
+if __name__ == '__main__':
+	main()
