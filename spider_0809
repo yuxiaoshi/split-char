@@ -2,7 +2,6 @@
 """
 Created on Wed Aug  9 14:35:36 2017
 
-@author: samsung
 """
 
 from urllib import request, parse
@@ -24,7 +23,9 @@ title_dict = {}
 text_dict = {}
 
 def GetHtml(url):
-    url = 'http://chinese.donga.com/List?c=02'
+    a = 1
+    #http://chinese.donga.com/List?p0=j&p=1&l=20&c=02
+    url = 'http://chinese.donga.com/List?p0=j&p={}&l=20&c=02'.format(a)
     proxy = request.ProxyHandler({'http':'109.105.1.52:8080'})
     opener = request.build_opener(proxy)
     request.install_opener(opener)
@@ -33,15 +34,14 @@ def GetHtml(url):
     html = page.read()
     
     soup = BeautifulSoup(html)
-    list = soup.find('ul',id="newsList").find_all('span',class_='title')
-    
-    for link in list:
-        link = link.a['href']
-        link_list.append(link)
+    link_list = [e.a['href'] for e in soup.body.find_all('span',class_='text')]
+        
+    a += 20
+        
 
 def GetText(link_list):
     
-    while len(link_list) > 0：:
+    while len(link_list) > 0 :
         link = link_list.pop()
         
         kor_url = link + '?m=kor'
@@ -83,7 +83,8 @@ def GetText(link_list):
         for item1,item2 in zip(kor_text,chn_text):
             text_dict[item1] = item2
         title_dict[kor_title] = chn_title
-
+        
+        time.sleep(1*random.random()+1)
             
         
 
