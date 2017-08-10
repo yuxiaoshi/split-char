@@ -56,7 +56,7 @@ def GetText(link_list):
         req1 = urllib2.Request(kor_url, headers = Headers)
         page1 = urllib2.urlopen(req1, timeout = 10)
         html1 = page1.read()
-        soup1 = BeautifulSoup(html1)
+        soup1 = BeautifulSoup(html1,from_encoding='utf-8')
         
         kor_title = soup1.find('div',id = 'view_title').h3.string
         kor_text1 = soup1.find('div',class_='news_view').find_all('p')
@@ -64,7 +64,7 @@ def GetText(link_list):
         req2 = urllib2.Request(chn_url, headers = Headers)
         page2 = urllib2.urlopen(req2, timeout = 10)
         html2 = page2.read()
-        soup2 = BeautifulSoup(html2)
+        soup2 = BeautifulSoup(html2,from_encoding='utf-8')
         
         chn_title = soup2.find('div',id = 'view_title').h3.string
         chn_text1 = soup2.find('div',class_='news_view').find_all('p')
@@ -93,3 +93,10 @@ def GetText(link_list):
 GetHtml() 
 print len(title_dict)
 print len(text_dict)
+
+f1 = open('result','w')
+for key,value in text_dict.items():
+    f1.write((key + '\n').encode('utf-8'))
+    f1.write((value + '\n').encode('utf-8'))
+    
+   
