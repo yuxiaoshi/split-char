@@ -1,0 +1,80 @@
+#coding:utf-8
+import sys
+import re
+
+sent_dict = {}
+
+f3 = open('kor_result','w')
+f4 = open('chn_result','w')
+f5 = open('need_check','w')
+
+with open(sys.argv[1]) as f1, open(sys.argv[2]) as f2:
+
+    for line1,line2 in zip(f1,f2):
+        kor = line1.decode('utf-8').strip('\r\n')
+        chn = line2.decode('utf-8').strip('\r\n')
+
+        kor_sent = []
+        chn_sent = []
+       
+        ### split korean ###
+        kor_end_flag = False
+        kor_pos = 1
+        kor_tem_sent = ''
+        tem_kor = ' ' + kor + ' '
+
+        while kor_pos <= len(kor):
+            window = tem_kor[kor_pos-1:kor_pos+2]
+            b4 = window[0]
+            mid = window[1]
+            after = window[2]
+            
+            if mid == '.':
+                if after == ' ':
+                    kor_end_flag = True
+
+            kor_tem_sent += mid
+            kor_pos += 1
+
+            if kor_end_flag:
+                kor_sent.append(kor_tem_sent)
+                kor_tem_sent = ''
+                kor_end_flag = False
+                
+        ### split chinese ###
+        chn_end_flag = False
+        chn_pos = 1
+        chn_tem_sent = ''
+        tem_chn = ' ' + chn + ' '
+
+        while chn_pos <= len(chn):
+            window = tem_chn[chn_pos-1:chn_pos+2]
+            b4 = window[0]
+            mid = window[1]
+            after = window[2]
+            
+            if mid == u'。':
+                if after not in (u'”'):
+                    chn_end_flag = True
+                elif (after in u'”') and (chn.rfind(u'”')==len(chn)-1):
+                    chn_end_flag = True
+
+            chn_tem_sent += mid
+            chn_pos += 1
+
+            if chn_end_flag:
+                chn_sent.append(chn_tem_sent.strip())
+                chn_tem_sent = ''
+                chn_end_flag = False
+
+        print len(kor_sent),len(chn_sent)
+        if len(kor_sent) == len(chn_sent):
+            for item1,item2 in zip(kor_sent,chn_sent):
+                f3.write((item1 + '\n').encode('utf-8'))
+                f4.write((item2 + '\n').encode('utf-8'))
+        else:
+            f5.write((kor + '\n').encode('utf-8'))
+            f5.write((chn + '\n').encode('utf-8'))
+
+            
+     
