@@ -3,7 +3,6 @@
 Created on Wed Aug  9 14:35:36 2017
 
 """
-
 import urllib2
 import time, random
 from bs4 import BeautifulSoup
@@ -19,6 +18,7 @@ Headers = {
         }
 
 link_list = []
+not_equal = {}
 title_dict = {}
 text_dict = {}
 
@@ -73,20 +73,27 @@ def GetText(link_list):
         chn_text = []
         
         for idx,item1 in enumerate(kor_text1):
-            if item1.string is not None:
-                if item1.string.strip() not in (''):
-                    kor_text.append(item1.string.strip())
+            if item1.text is not None:
+                if item1.text.strip() not in (''):
+                    kor_text.append(item1.text.strip())
             
         for idx,item2 in enumerate(chn_text1):
-            if item2.string is not None:
-                if item2.string.strip() not in (''):
-                    chn_text.append(item2.string.strip())
-
-        for item1,item2 in zip(kor_text,chn_text):
-            text_dict[item1] = item2
-        title_dict[kor_title] = chn_title
+            if item2.text is not None:
+                if item2.text.strip() not in (''):
+                    chn_text.append(item2.text.strip())
         
-        print link,'success'
+        if len(kor_text) == len(chn_text):
+            for item1,item2 in zip(kor_text,chn_text):
+                text_dict[item1] = item2
+            title_dict[kor_title] = chn_title
+        else:
+            print link,'not equal'
+            not_equal[kor_url] = chn_url
+            #for item1 in kor_text:
+                #print item1
+            #for item2 in chn_text:
+                #print item2
+        
         time.sleep(1*random.random()+1)
             
 
@@ -94,9 +101,9 @@ GetHtml()
 print len(title_dict)
 print len(text_dict)
 
-f1 = open('result','w')
+f1 = open('kor','w')
+f2 = open('chn','w')
 for key,value in text_dict.items():
     f1.write((key + '\n').encode('utf-8'))
-    f1.write((value + '\n').encode('utf-8'))
+    f2.write((value + '\n').encode('utf-8'))
     
-   
