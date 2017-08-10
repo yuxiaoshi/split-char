@@ -4,7 +4,7 @@ Created on Wed Aug  9 14:35:36 2017
 
 """
 
-from urllib import request, parse
+import urllib2
 import time, random
 from bs4 import BeautifulSoup
 
@@ -22,21 +22,23 @@ link_list = []
 title_dict = {}
 text_dict = {}
 
-def GetHtml(url):
+def GetHtml():
     a = 1
     #http://chinese.donga.com/List?p0=j&p=1&l=20&c=02
     url = 'http://chinese.donga.com/List?p0=j&p={}&l=20&c=02'.format(a)
-    proxy = request.ProxyHandler({'http':'109.105.1.52:8080'})
-    opener = request.build_opener(proxy)
-    request.install_opener(opener)
-    req = request.Request(url, headers = Headers)
-    page = request.urlopen(req, timeout = 10)
+    proxy = urllib2.ProxyHandler({'http':'109.105.1.52:8080'})
+    opener = urllib2.build_opener(proxy)
+    urllib2.install_opener(opener)
+    req = urllib2.Request(url, headers = Headers)
+    page = urllib2.urlopen(req, timeout = 10)
     html = page.read()
     
     soup = BeautifulSoup(html)
     link_list = [e.a['href'] for e in soup.body.find_all('span',class_='text')]
-        
-    a += 20
+   
+    print 'get org link!'
+    GetText(link_list)
+    #a += 20
         
 
 def GetText(link_list):
@@ -47,20 +49,20 @@ def GetText(link_list):
         kor_url = link + '?m=kor'
         chn_url = link + '?m=chn'
         
-        proxy = request.ProxyHandler({'http':'109.105.1.52:8080'})
-        opener = request.build_opener(proxy)
-        request.install_opener(opener)
+        proxy = urllib2.ProxyHandler({'http':'109.105.1.52:8080'})
+        opener = urllib2.build_opener(proxy)
+        urllib2.install_opener(opener)
         
-        req1 = request.Request(kor_url, headers = Headers)
-        page1 = request.urlopen(req1, timeout = 10)
+        req1 = urllib2.Request(kor_url, headers = Headers)
+        page1 = urllib2.urlopen(req1, timeout = 10)
         html1 = page1.read()
         soup1 = BeautifulSoup(html1)
         
         kor_title = soup1.find('div',id = 'view_title').h3.string
         kor_text1 = soup1.find('div',class_='news_view').find_all('p')
         
-        req2 = request.Request(chn_url, headers = Headers)
-        page2 = request.urlopen(req2, timeout = 10)
+        req2 = urllib2.Request(chn_url, headers = Headers)
+        page2 = urllib2.urlopen(req2, timeout = 10)
         html2 = page2.read()
         soup2 = BeautifulSoup(html2)
         
@@ -84,19 +86,10 @@ def GetText(link_list):
             text_dict[item1] = item2
         title_dict[kor_title] = chn_title
         
+        print link,'success'
         time.sleep(1*random.random()+1)
             
-        
 
-
-        
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+GetHtml() 
+print len(title_dict)
+print len(text_dict)
