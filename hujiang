@@ -73,7 +73,8 @@ def GetText(link):
 
     f1 = open('result','a+')
     for item1,item2 in zip(kor_l,chn_l):
-        f1.write((item1 + item2 + '\n').encode('utf-8'))
+        if len(item1) > 8:
+                f1.write((item1 + item2 + '\n').encode('utf-8'))
     time.sleep(1*random.random()+1) 
     return kor_l,chn_l
 
