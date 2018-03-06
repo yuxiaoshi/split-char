@@ -101,6 +101,8 @@ https://www.coursera.org/learn/calculus1?siteID=SAyYsTvLiGQ-0Kgcly2TsB5vp.pZHFSi
 a. tf.app.flags.FLAGE传参数，必须启用app.run()和main(_)函数
 b. 加载模型的方法： saver.restore，tf.train.import_meta_graph, tf.contrib.framework.list_variables
    https://stackoverflow.com/questions/37086268/rename-variable-scope-of-saved-model-in-tensorflow
+   使用不同的graph和session加载不同graph的模型：
+   http://blog.csdn.net/jmh1996/article/details/78793650
 c. 同时融合多种模型的办法
 d. Dense layer的意义， tf.nn.conv2d各个参数的含义
 
