@@ -107,4 +107,7 @@ c. 同时融合多种模型的办法
 d. Dense layer的意义， tf.nn.conv2d各个参数的含义
 
 
+26. seq2seq源码解析
+http://blog.csdn.net/yezhenxu1992/article/details/72156233
+
 
