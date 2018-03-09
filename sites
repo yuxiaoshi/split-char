@@ -111,3 +111,10 @@ d. Dense layer的意义， tf.nn.conv2d各个参数的含义
 http://blog.csdn.net/yezhenxu1992/article/details/72156233
 
 
+27. seq2seq中attention wrapper的详解
+http://blog.csdn.net/leadai/article/details/78809788
+
+
+
+
+
