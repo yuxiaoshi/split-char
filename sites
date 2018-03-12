@@ -105,6 +105,10 @@ b. 加载模型的方法： saver.restore，tf.train.import_meta_graph, tf.contr
    http://blog.csdn.net/jmh1996/article/details/78793650
 c. 同时融合多种模型的办法
 d. Dense layer的意义， tf.nn.conv2d各个参数的含义
+e. 学会区分tf.name_scope 和 tf.variable_scope
+   http://blog.csdn.net/uestc_c2_403/article/details/72328815
+f. tf.get_variable函数的使用
+   http://blog.csdn.net/uestc_c2_403/article/details/72327321
 
 
 26. seq2seq源码解析
