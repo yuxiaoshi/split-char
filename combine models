@@ -1,0 +1,33 @@
+import tensorflow as tf
+from collections import OrderedDict
+import sys
+
+def new_model():
+    ## load parameters in baseline model ##
+    vars_1 = tf.contrib.framework.list_variables('path1')
+    vars_2 = tf.contrib.framework.list_variables('path2')
+    
+    new_vars = []
+
+    g1 = tf.Graph()
+    with g1.as_default():
+        # load variables
+        for v_name, shape in vars_1:
+            v = tf.contrib.framework.load_variable('path1', v_name)
+            new_vars.append(tf.Variable(v,name = v_name))
+
+        for v_name, shape in vars_2:
+            if ('cnn' in v_name) or ('maxpool') in v_name:
+                v = tf.contrib.framework.load_variable('path2', v_name)
+                new_vars.append(tf.Variable(v,name=v_name))
+        
+        for v in new_vars:
+            print v.name
+        
+        sess = tf.Session()
+        saver = tf.train.Saver(new_vars)
+        sess.run(tf.global_variables_initializer())
+        saver.save(sess, 'new_model_path')
+
+new_model()
+
